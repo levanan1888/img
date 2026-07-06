@@ -1,0 +1,300 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source "../**/*.blade.php";
+@source "../**/*.js";
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    --color-primary-50: #fafafa;
+    --color-primary-100: #f4f4f5;
+    --color-primary-600: #18181b;
+    --color-primary-700: #09090b;
+    --color-primary-800: #000000;
+    --color-accent-600: #0061ff;
+    --color-neutral-50: #fafafa;
+    --color-neutral-100: #f4f4f5;
+    --color-neutral-200: #e4e4e7;
+    --color-neutral-600: #71717a;
+    --color-neutral-900: #09090b;
+}
+
+/* Custom UI Redesign Utilities */
+@layer utilities {
+    .bg-grid-light {
+        background-size: 32px 32px;
+        background-image: 
+            linear-gradient(to right, rgba(9, 9, 11, 0.015) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(9, 9, 11, 0.015) 1px, transparent 1px);
+    }
+    
+    .glass-nav {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }
+
+    /* Minimalist upload zone (No border, elegant zinc shadow) */
+    .dropzone-container {
+        background-color: #ffffff;
+        border: 1px solid #e4e4e7;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(9, 9, 11, 0.02), 0 4px 6px -4px rgba(9, 9, 11, 0.02);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: 18px;
+    }
+    
+    .dropzone-container:hover {
+        background-color: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: 0 20px 25px -5px rgba(9, 9, 11, 0.04), 0 8px 10px -6px rgba(9, 9, 11, 0.04);
+    }
+
+    .dropzone-container.drag-active {
+        border-color: #0061ff;
+        background-color: #fafafa;
+        box-shadow: 0 20px 25px -5px rgba(0, 97, 255, 0.04), 0 8px 10px -6px rgba(0, 97, 255, 0.04);
+    }
+
+    .upload-icon-anim {
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .drag-active .upload-icon-anim {
+        transform: scale(1.08);
+    }
+
+    /* Segmented Controls (Tabs) */
+    .segmented-control {
+        display: flex;
+        background-color: #f4f4f5;
+        border-radius: 8px;
+        padding: 2px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .segmented-tab {
+        flex: 1;
+        text-align: center;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #71717a;
+        padding: 6px 0;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: color 0.15s ease;
+        position: relative;
+        z-index: 2;
+    }
+
+    .segmented-tab.active {
+        color: #09090b;
+        background-color: #ffffff;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Custom Apple-style switches */
+    .switch-checkbox {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        position: absolute;
+    }
+
+    .switch-label {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .switch-slider {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+        background-color: #e4e4e7;
+        border-radius: 20px;
+        transition: background-color 0.2s ease;
+        margin-right: 8px;
+        flex-shrink: 0;
+    }
+
+    .switch-slider::before {
+        content: "";
+        position: absolute;
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        border-radius: 50%;
+        transition: transform 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .switch-checkbox:checked + .switch-slider {
+        background-color: #09090b;
+    }
+
+    .switch-checkbox:checked + .switch-slider::before {
+        transform: translateX(16px);
+    }
+
+    /* Splitscreen Viewport Slider */
+    .split-slider-container {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 12px;
+        border: 1px solid #e4e4e7;
+        background-color: #ffffff;
+    }
+
+    .split-pane {
+        width: 100%;
+        height: 100%;
+    }
+
+    .split-pane-right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+        background-color: #fcfcfc;
+        border-left: 1px solid #e4e4e7;
+        overflow: hidden;
+        transition: width 0.05s linear;
+    }
+
+    .split-divider-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #09090b;
+        cursor: ew-resize;
+        z-index: 10;
+        transform: translateX(-50%);
+    }
+
+    .split-handle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: #09090b;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        pointer-events: none;
+    }
+
+    .split-input-range {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: ew-resize;
+        z-index: 20;
+        margin: 0;
+    }
+
+    /* Console logs timeline */
+    .console-logs-window {
+        background-color: #09090b;
+        border-radius: 12px;
+        color: #f4f4f5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        padding: 24px;
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        box-shadow: inset 0 1px 1px rgba(255,255,255,0.05), 0 20px 25px -5px rgba(0,0,0,0.15);
+    }
+
+    .console-step-row {
+        position: relative;
+        padding-left: 24px;
+        padding-bottom: 16px;
+    }
+
+    .console-step-row::before {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 14px;
+        bottom: -2px;
+        width: 1px;
+        background-color: #27272a;
+    }
+
+    .console-step-row:last-child::before {
+        display: none;
+    }
+
+    .console-dot {
+        position: absolute;
+        left: 2px;
+        top: 4px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background-color: #27272a;
+        border: 2px solid #09090b;
+        z-index: 2;
+    }
+
+    .console-dot.complete {
+        background-color: #10b981;
+    }
+
+    .console-dot.active {
+        background-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        animation: pulse-dot 1.5s infinite;
+    }
+
+    @keyframes pulse-dot {
+        0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 5px rgba(59, 130, 246, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+    }
+
+    /* Accordion Minimal line styling */
+    .faq-item {
+        border-bottom: 1px solid #f4f4f5;
+    }
+    
+    .faq-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 0;
+        text-align: left;
+        cursor: pointer;
+        background: none;
+        border: none;
+        outline: none;
+    }
+
+    .faq-panel {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.25s cubic-bezier(0.16, 1, 0.3, 1), padding 0.25s ease;
+    }
+}
