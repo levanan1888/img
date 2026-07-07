@@ -46,9 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'step-uploading', label: 'UPLOADING', msg: 'Uploading image stream to edge server...' },
         { id: 'step-preparing', label: 'PREPARING', msg: 'Initializing sandbox environment workspace...' },
         { id: 'step-reading', label: 'READING', msg: 'Decoding pixel buffer arrays and header maps...' },
-        { id: 'step-converting', label: 'CONVERTING', msg: 'Rendering lossless transparency color channels...' },
+        { id: 'step-converting', label: 'CONVERTING', msg: 'Rendering output color channels...' },
         { id: 'step-optimizing', label: 'OPTIMIZING', msg: 'Applying compression vectors...' },
-        { id: 'step-generating', label: 'GENERATING', msg: 'Encoding pixel vectors to lossless stream...' },
+        { id: 'step-generating', label: 'GENERATING', msg: 'Encoding pixel vectors to the selected format...' },
         { id: 'step-finalizing', label: 'FINALIZING', msg: 'Terminating container. Purging cached workspaces...' }
     ];
     
@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let conversionTimer = null;
     let currentUploadProgress = 0;
     let targetFormat = 'png';
+    const conversionTimeoutMs = 120000;
     
     // -------------------------------------------------------------
     // Target Format Dropdown Listener
@@ -306,41 +307,62 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('document', selectedFile);
         formData.append('target_format', targetFormat);
 
-        appendLog('info', `SERVER CONVERTER: Uploading image to Laravel converter targeting ${targetFormat.toUpperCase()}...`);
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), conversionTimeoutMs);
+        const formatLabel = targetFormat.toUpperCase();
 
-        const response = await fetch('/convert/word-to-pdf', {
-            method: 'POST',
-            headers: {
-                Accept: 'image/png, image/jpeg, image/webp, image/bmp, application/json',
-                ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-            },
-            body: formData,
-        });
+        appendLog('info', `SERVER CONVERTER: Uploading image to Laravel converter targeting ${formatLabel}...`);
 
-        if (!response.ok) {
-            const errorPayload = await response.json().catch(() => null);
-            const message = errorPayload?.message || 'Unable to convert this image.';
-            throw new Error(message);
+        try {
+            const response = await fetch('/convert/image', {
+                method: 'POST',
+                headers: {
+                    Accept: 'image/png, image/jpeg, image/webp, image/bmp, application/json',
+                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                },
+                body: formData,
+                signal: controller.signal,
+            });
+
+            if (!response.ok) {
+                const errorPayload = await response.json().catch(() => null);
+                const message = errorPayload?.message || 'Unable to convert this image.';
+                throw new Error(message);
+            }
+
+            procTimeRemaining.textContent = `Receiving ${formatLabel} file...`;
+            const blob = await response.blob();
+
+            if (!blob.size) {
+                throw new Error('The generated file is empty. Please try another image file.');
+            }
+
+            appendLog('success', `SERVER CONVERTER: Laravel generated a ${formatLabel} image successfully.`);
+
+            return {
+                blob,
+                downloadUrl: URL.createObjectURL(blob),
+            };
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('Conversion is taking too long. Please try a smaller image or choose PNG/JPG/WEBP instead of BMP.');
+            }
+
+            throw error;
+        } finally {
+            window.clearTimeout(timeoutId);
         }
-
-        const blob = await response.blob();
-
-        if (!blob.size) {
-            throw new Error('The generated file is empty. Please try another image file.');
-        }
-
-        appendLog('success', `SERVER CONVERTER: Laravel generated a ${targetFormat.toUpperCase()} image successfully.`);
-
-        return {
-            blob,
-            downloadUrl: URL.createObjectURL(blob),
-        };
     }
     
     // -------------------------------------------------------------
     // Timeline Console Progress Simulator
     // -------------------------------------------------------------
     function runConversionSimulation() {
+        if (btnConvert.hasAttribute('disabled')) {
+            return;
+        }
+
+        btnConvert.setAttribute('disabled', 'disabled');
         setViewState('converting');
         
         // Reset Terminal
@@ -378,17 +400,25 @@ document.addEventListener('DOMContentLoaded', () => {
         
         function runNextStep() {
             if (currentStepIndex >= stepsData.length) {
-                appendLog('info', `FINALIZING: Requesting Laravel ${targetFormat.toUpperCase()} response stream...`);
+                const formatLabel = targetFormat.toUpperCase();
+                procProgressBar.style.width = '99%';
+                procProgressPercent.textContent = '99%';
+                procTimeRemaining.textContent = targetFormat === 'bmp'
+                    ? 'Creating uncompressed BMP file. This may take longer...'
+                    : `Receiving ${formatLabel} file...`;
+                appendLog('info', `FINALIZING: Requesting Laravel ${formatLabel} response stream...`);
                 
                 convertSelectedFileOnServer(appendLog)
                     .then(({ downloadUrl, blob }) => {
-                        appendLog('success', `SUCCESS: ${targetFormat.toUpperCase()} compilation finalized. Emitting image download headers.`);
+                        appendLog('success', `SUCCESS: ${formatLabel} compilation finalized. Emitting image download headers.`);
                         showSuccessScreen(downloadUrl, blob);
+                        btnConvert.removeAttribute('disabled');
                     })
                     .catch((error) => {
                         console.error('Laravel conversion error: ', error);
                         appendLog('info', `SERVER CONVERTER ERROR: ${error.message}`);
                         showToast(error.message);
+                        procTimeRemaining.textContent = 'Conversion failed.';
                         setViewState('uploading');
                         btnConvert.removeAttribute('disabled');
                     });
@@ -452,13 +482,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const compSize = customBlob.size;
         const origSize = selectedFile ? selectedFile.size : compSize * 1.3;
-        const ratio = Math.max(Math.round((1 - (compSize / origSize)) * 100), 0);
+        const ratio = Math.round((1 - (compSize / origSize)) * 100);
         const seconds = (1.2 + Math.random() * 0.8).toFixed(1);
         
         successFileName.textContent = outName;
         successFileSize.textContent = formatBytes(compSize);
         successTime.textContent = `${seconds}s`;
-        successCompression.textContent = `${ratio}% compressed`;
+        successCompression.textContent = ratio >= 0 ? ratio + '% compressed' : Math.abs(ratio) + '% larger';
         
         if (successSymbol) {
             successSymbol.textContent = targetFormat.toUpperCase();

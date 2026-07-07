@@ -7,83 +7,67 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
-class WordToPdfConverter
+class ImageConverter
 {
+    private const MAX_BMP_OUTPUT_BYTES = 50 * 1024 * 1024;
+
     /** @return array{path: string, name: string, size: int} */
     public function convert(UploadedFile $file, string $targetFormat = 'png'): array
     {
         $workingDirectory = $this->ensureWorkingDirectory();
         $sourcePath = $this->buildSourcePath($file, $workingDirectory);
-        $outputPath = $workingDirectory.DIRECTORY_SEPARATOR.pathinfo($sourcePath, PATHINFO_FILENAME).'.'.$targetFormat;
+        $outputPath = $workingDirectory . DIRECTORY_SEPARATOR . pathinfo($sourcePath, PATHINFO_FILENAME) . '.' . $targetFormat;
         $outputFileName = $this->buildOutputFileName($file, $targetFormat);
+        $image = null;
 
         $file->move($workingDirectory, basename($sourcePath));
 
         try {
             $extension = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
 
-            // Load image using native GD functions based on original extension
-            switch ($extension) {
-                case 'jpeg':
-                case 'jpg':
-                    $image = imagecreatefromjpeg($sourcePath);
-                    break;
-                case 'webp':
-                    $image = imagecreatefromwebp($sourcePath);
-                    break;
-                case 'bmp':
-                    $image = imagecreatefrombmp($sourcePath);
-                    break;
-                case 'png':
-                    $image = imagecreatefrompng($sourcePath);
-                    break;
-                default:
-                    throw new RuntimeException('Unsupported image type: ' . $extension);
-            }
+            $image = match ($extension) {
+                'jpeg', 'jpg' => imagecreatefromjpeg($sourcePath),
+                'webp' => imagecreatefromwebp($sourcePath),
+                'bmp' => imagecreatefrombmp($sourcePath),
+                'png' => imagecreatefrompng($sourcePath),
+                default => throw new RuntimeException('Unsupported image type: ' . $extension),
+            };
 
-            if (!$image) {
+            if (! $image) {
                 throw new RuntimeException('Failed to load image file.');
             }
 
-            // Enable transparency mapping for transparent target formats
             if ($targetFormat === 'png' || $targetFormat === 'webp') {
                 imagealphablending($image, false);
                 imagesavealpha($image, true);
             }
 
-            // Export as requested format
-            switch ($targetFormat) {
-                case 'png':
-                    $saved = imagepng($image, $outputPath);
-                    break;
-                case 'jpg':
-                case 'jpeg':
-                    $saved = imagejpeg($image, $outputPath, 90);
-                    break;
-                case 'webp':
-                    $saved = imagewebp($image, $outputPath, 85);
-                    break;
-                case 'bmp':
-                    $saved = imagebmp($image, $outputPath);
-                    break;
-                default:
-                    throw new RuntimeException('Unsupported output format: ' . $targetFormat);
-            }
+            $saved = match ($targetFormat) {
+                'png' => imagepng($image, $outputPath),
+                'jpg', 'jpeg' => imagejpeg($image, $outputPath, 90),
+                'webp' => imagewebp($image, $outputPath, 85),
+                'bmp' => $this->saveBmp($image, $outputPath),
+                default => throw new RuntimeException('Unsupported output format: ' . $targetFormat),
+            };
 
             imagedestroy($image);
+            $image = null;
 
-            if (!$saved) {
+            if (! $saved) {
                 throw new RuntimeException('Failed to write output file.');
             }
-
         } catch (Throwable $exception) {
+            if ($image instanceof \GdImage) {
+                imagedestroy($image);
+            }
+
             $this->deleteFile($sourcePath);
             $this->deleteFile($outputPath);
 
             report($exception);
 
             throw new RuntimeException(
-                'Image conversion failed: '.$exception->getMessage(),
+                'Image conversion failed: ' . $exception->getMessage(),
                 previous: $exception,
             );
         }
@@ -103,19 +87,37 @@ class WordToPdfConverter
         ];
     }
 
+    private function saveBmp(\GdImage $image, string $outputPath): bool
+    {
+        $this->assertBmpOutputSizeIsAllowed($image);
+
+        return imagebmp($image, $outputPath);
+    }
+
+    private function assertBmpOutputSizeIsAllowed(\GdImage $image): void
+    {
+        $estimatedBytes = (imagesx($image) * imagesy($image) * 3) + 54;
+
+        if ($estimatedBytes <= self::MAX_BMP_OUTPUT_BYTES) {
+            return;
+        }
+
+        throw new RuntimeException('BMP output is too large. Please choose PNG, JPG, WEBP, or upload a smaller image.');
+    }
+
     private function buildSourcePath(UploadedFile $file, string $workingDirectory): string
     {
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
-        $safeName = Str::uuid().'.'.$extension;
+        $safeName = Str::uuid() . '.' . $extension;
 
-        return $workingDirectory.DIRECTORY_SEPARATOR.$safeName;
+        return $workingDirectory . DIRECTORY_SEPARATOR . $safeName;
     }
 
     private function buildOutputFileName(UploadedFile $file, string $targetFormat): string
     {
         return Str::of($file->getClientOriginalName())
             ->beforeLast('.')
-            ->append('.'.$targetFormat)
+            ->append('.' . $targetFormat)
             ->replaceMatches('/[^A-Za-z0-9._-]+/', '_')
             ->toString();
     }

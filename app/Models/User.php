@@ -21,6 +21,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role_id',
+        'status',
     ];
 
     /**
@@ -44,5 +46,35 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function hasPermission(string $module, string $action): bool
+    {
+        // If not logged in as admin/staff or has no role
+        if (!$this->role) {
+            return false;
+        }
+
+        // Admins automatically bypass permission checks
+        if ($this->role->name === 'Admin') {
+            return true;
+        }
+
+        $permissions = $this->role->permissions;
+        if (!is_array($permissions)) {
+            return false;
+        }
+
+        return isset($permissions[$module]) && in_array($action, $permissions[$module]);
     }
 }

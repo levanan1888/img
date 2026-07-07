@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ConvertWordToPdfRequest extends FormRequest
+class ConvertImageRequest extends FormRequest
 {
     public function authorize(): bool
     {

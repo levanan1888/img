@@ -5,15 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Image to PNG Converter - Fast & Lossless Image Conversion</title>
+    <title>Universal Image Converter - Fast & Lossless Image Conversion</title>
     
     <!-- Meta SEO -->
-    <meta name="description" content="Convert your JPG, JPEG, WEBP, and BMP images directly to lossless PNG format in seconds. Native alpha-channel transparency preservation.">
+    <meta name="description" content="Convert your images (JPG, JPEG, PNG, WEBP, BMP) online instantly. Fast, lossless, and secure image format conversion.">
 
-    <!-- Typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 
     <!-- CSS / JS compilation -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -26,11 +23,11 @@
             
             <!-- Brand Logo -->
             <div class="flex items-center">
-                <a href="{{ url('/') }}" class="flex items-center gap-2 focus:outline-none focus:ring-1 focus:ring-zinc-400 rounded-md p-1" aria-label="Image to PNG homepage">
+                <a href="{{ url('/') }}" class="flex items-center gap-2 focus:outline-none focus:ring-1 focus:ring-zinc-400 rounded-md p-1" aria-label="Image Converter homepage">
                     <svg class="w-6 h-6 text-zinc-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                     </svg>
-                    <span class="text-sm font-bold text-zinc-900 tracking-tight">Image to <span class="text-zinc-500">PNG</span></span>
+                    <span class="text-sm font-bold text-zinc-900 tracking-tight">Image <span class="text-zinc-500">Converter</span></span>
                 </a>
             </div>
 
@@ -38,18 +35,24 @@
             <nav class="hidden md:flex items-center gap-8" aria-label="Main Navigation">
                 <a href="#hero" class="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors uppercase tracking-wider">Home</a>
                 <a href="#why-choose-us" class="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors uppercase tracking-wider">Quality</a>
-                <a href="#security" class="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors uppercase tracking-wider">Security</a>
-                <a href="#faq" class="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors uppercase tracking-wider">FAQ</a>
+                <a href="{{ route('blog') }}" class="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors uppercase tracking-wider">Blog</a>
             </nav>
 
             <!-- Navigation Controls (Right) -->
             <div class="flex items-center gap-3">
-                <a href="#" class="hidden sm:inline-flex text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors py-1.5 px-2.5 uppercase tracking-wider">Log in</a>
-                <a href="#" class="inline-flex text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 active:bg-black transition-colors py-2 px-4 rounded-md tracking-wide">Register</a>
-                
-                <button class="w-7 h-7 rounded-full border border-zinc-200 bg-zinc-100 flex items-center justify-center text-[10px] font-semibold text-zinc-600 overflow-hidden focus:outline-none focus:ring-1 focus:ring-zinc-400" aria-label="User menu">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop" alt="User Avatar" class="w-full h-full object-cover">
-                </button>
+                @auth
+                    <span class="text-xs font-bold text-zinc-700">Xin chào, {{ auth()->user()->name }}</span>
+                    @if(auth()->user()->role)
+                        <a href="{{ route('admin.dashboard') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-850 uppercase tracking-wider">Trang quản trị</a>
+                    @endif
+                    <form action="{{ route('logout') }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="text-xs font-semibold text-zinc-500 hover:text-zinc-900 uppercase tracking-wider">Đăng xuất</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors py-1.5 px-2.5 uppercase tracking-wider">Đăng nhập</a>
+                    <a href="{{ route('register') }}" class="inline-flex text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 active:bg-black transition-colors py-2 px-4 rounded-md tracking-wide">Đăng ký</a>
+                @endauth
             </div>
 
         </div>
@@ -119,7 +122,7 @@
                                     <option value="png" selected>PNG (Lossless)</option>
                                     <option value="jpg">JPG (Compressed)</option>
                                     <option value="webp">WEBP (Modern Web)</option>
-                                    <option value="bmp">BMP (Uncompressed)</option>
+                                    <option value="bmp">BMP (Uncompressed, large)</option>
                                 </select>
                             </div>
 
@@ -172,7 +175,7 @@
                                     </div>
                                     <div id="step-generating" class="console-step-row text-neutral-600">
                                         <div id="step-generating-dot" class="console-dot"></div>
-                                        <span class="text-[11px] font-medium">Build PNG stream</span>
+                                        <span class="text-[11px] font-medium">Build output stream</span>
                                     </div>
                                     <div id="step-finalizing" class="console-step-row text-neutral-600">
                                         <div id="step-finalizing-dot" class="console-dot"></div>
@@ -315,116 +318,6 @@
             </div>
         </section>
 
-        <!-- Security Section (Clean Slate Badge Style) -->
-        <section id="security" class="py-20 bg-zinc-50 border-t border-b border-zinc-200/50">
-            <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-                <div class="text-center max-w-2xl mx-auto mb-16">
-                    <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest block mb-3">Enterprise Security</span>
-                    <h2 class="text-2xl font-extrabold text-zinc-900 mb-4">Zero-Trust Image Processing</h2>
-                    <p class="text-sm text-zinc-500 leading-relaxed font-normal">We treat business images with the highest protocols. No cached streams are shared, and no external tracking cookies are used.</p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                    <div class="text-left">
-                        <span class="text-xs font-bold text-zinc-900 block mb-2 uppercase tracking-wide">1. TLS 1.3 Transport</span>
-                        <p class="text-[11px] text-zinc-500 leading-relaxed font-normal">Your files are encrypted in-transit from your browser to our sandbox API with strict HTTPS protocols.</p>
-                    </div>
-                    <div class="text-left">
-                        <span class="text-xs font-bold text-zinc-900 block mb-2 uppercase tracking-wide">2. Automated purges</span>
-                        <p class="text-[11px] text-zinc-500 leading-relaxed font-normal">Temporary workspace nodes are destroyed immediately after PNG generation. No storage residues remain.</p>
-                    </div>
-                    <div class="text-left">
-                        <span class="text-xs font-bold text-zinc-900 block mb-2 uppercase tracking-wide">3. Zero-Human Access</span>
-                        <p class="text-[11px] text-zinc-500 leading-relaxed font-normal">The execution logs only track status codes. No human administrators can view, inspect, or copy your file contents.</p>
-                    </div>
-                </div>
-
-                <!-- Sleek Trust badge certifications row -->
-                <div class="mt-16 pt-8 border-t border-zinc-200/60 flex flex-wrap items-center justify-center gap-10 opacity-50 text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
-                    <span>SOC 2 compliance ready</span>
-                    <span>GDPR data residence</span>
-                    <span>256-bit AES encryption</span>
-                    <span>ISO 27001 criteria</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Clean Supported Formats list -->
-        <section id="formats" class="py-16 bg-white">
-            <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex flex-col sm:flex-row items-center justify-between gap-8 border-b border-zinc-150 pb-16">
-                <div>
-                    <h3 class="text-sm font-bold text-zinc-900 mb-1">Supported Format Combinations</h3>
-                    <p class="text-xs text-zinc-500 font-normal">Read image formats and output compliant PNG files.</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-3">
-                    <span class="text-xs font-semibold px-3 py-1 bg-zinc-50 border border-zinc-200 rounded text-zinc-800">JPG</span>
-                    <span class="text-xs font-semibold px-3 py-1 bg-zinc-50 border border-zinc-200 rounded text-zinc-800">JPEG</span>
-                    <span class="text-xs font-semibold px-3 py-1 bg-zinc-50 border border-zinc-200 rounded text-zinc-800">WEBP</span>
-                    <span class="text-xs font-semibold px-3 py-1 bg-zinc-50 border border-zinc-200 rounded text-zinc-800">BMP</span>
-                    <span class="text-xs font-semibold px-3 py-1 bg-zinc-900 text-white rounded">PNG</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Handcrafted Accordion FAQ Section -->
-        <section id="faq" class="py-24 bg-white">
-            <div class="max-w-3xl mx-auto px-6 sm:px-8">
-                
-                <div class="text-center mb-16">
-                    <span class="text-xs font-bold text-zinc-400 uppercase tracking-widest block mb-3">Support logs</span>
-                    <h2 class="text-2xl font-extrabold text-zinc-900 tracking-tight">Frequently Asked Questions</h2>
-                </div>
-
-                <div class="border-t border-zinc-200/80">
-                    
-                    <!-- FAQ 1 -->
-                    <div class="faq-item">
-                        <button class="faq-trigger" aria-expanded="false">
-                            <span class="text-xs font-semibold text-zinc-900 uppercase tracking-wider">How do I convert images to PNG?</span>
-                            <svg class="faq-icon w-4 h-4 text-zinc-400 transition-transform duration-250 shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div class="faq-panel">
-                            <p class="text-xs text-zinc-500 leading-relaxed font-normal">
-                                Simply upload your image in the workspace box above. Click "Convert to PNG". Our sandbox servers will compile the file instantly and return a secure download stream.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- FAQ 2 -->
-                    <div class="faq-item">
-                        <button class="faq-trigger" aria-expanded="false">
-                            <span class="text-xs font-semibold text-zinc-900 uppercase tracking-wider">Will image transparency be preserved?</span>
-                            <svg class="faq-icon w-4 h-4 text-zinc-400 transition-transform duration-250 shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div class="faq-panel">
-                            <p class="text-xs text-zinc-500 leading-relaxed font-normal">
-                                Yes. Our processing engine reads WebP and PNG alpha channels, saving transparency data natively in the output PNG file to prevent dark backgrounds.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- FAQ 3 -->
-                    <div class="faq-item">
-                        <button class="faq-trigger" aria-expanded="false">
-                            <span class="text-xs font-semibold text-zinc-900 uppercase tracking-wider">Is my data secure?</span>
-                            <svg class="faq-icon w-4 h-4 text-zinc-400 transition-transform duration-250 shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div class="faq-panel">
-                            <p class="text-xs text-zinc-500 leading-relaxed font-normal">
-                                Absolutely. All uploads are processed inside secure, isolated sandboxes. Communication occurs over SSL/TLS channels, and your uploaded files are completely wiped from our temporary edge storage nodes within 60 minutes.
-                            </p>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </section>
 
     </main>
 
@@ -436,7 +329,7 @@
                 <div>
                     <h4 class="text-[10px] font-bold text-zinc-300 uppercase tracking-widest mb-4">Products</h4>
                     <ul class="space-y-2.5">
-                        <li><a href="#" class="hover:text-white transition-colors">Image to PNG</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Image Converter</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">PNG Compressor</a></li>
                     </ul>
                 </div>
@@ -475,7 +368,7 @@
 
             <div class="pt-8 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-semibold text-zinc-500">© 2026 Image to PNG Converter. Edge instances maintained securely.</span>
+                    <span class="text-[11px] font-semibold text-zinc-500">© 2026 Universal Image Converter. Edge instances maintained securely.</span>
                 </div>
                 
                 <!-- Language drop selection -->
